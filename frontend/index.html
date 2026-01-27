@@ -1,71 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Send Anywhere Clone</title>
+    <title>FileFly - Simple Share</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
+
 <body>
-    <div class="container">
-        <header>
-            <div class="logo">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-                <h1>Send Anywhere</h1>
-            </div>
-            <p class="tagline">Simple, unlimited file sharing</p>
-        </header>
+    <div class="app-container">
+        <h1>FileFly</h1>
 
-        <main>
-            <div class="card send-card">
-                <h2>Send</h2>
-                <div class="drop-zone" id="dropZone">
-                    <div class="icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                    </div>
-                    <p>Click to add files</p>
-                    <input type="file" id="fileInput" hidden>
-                </div>
-                
-                <div id="uploadStatus" class="status-area hidden">
-                    <div class="file-info">
-                        <span id="fileName">file.txt</span>
-                        <span id="fileSize">0 KB</span>
-                    </div>
-                    <button id="sendBtn" class="btn primary">Send</button>
-                </div>
-
-                <div id="resultArea" class="result-area hidden">
-                    <div class="code-display">
-                        <span class="label">Transfer Code</span>
-                        <div class="code-box">
-                            <span id="transferCode">------</span>
-                        </div>
-                        <p class="expiry">Expires in <span id="timeRemaining">10:00</span></p>
-                    </div>
-                    <button id="newTransferBtn" class="btn secondary">Send Another</button>
-                </div>
+        <div class="section">
+            <h3>Send a File</h3>
+            <input type="file" id="fileInput">
+            <button id="sendBtn">Upload & Get Code</button>
+            <div id="resultArea" class="hidden">
+                <p>Share this code:</p>
+                <div class="code-text" id="transferCode">------</div>
             </div>
+        </div>
 
-            <div class="divider">
-                <span>OR</span>
-            </div>
+        <div class="divider">or</div>
 
-            <div class="card receive-card">
-                <h2>Receive</h2>
-                <div class="input-group">
-                    <input type="text" id="receiveCode" placeholder="Enter 6-digit code" maxlength="6" pattern="\d*">
-                    <button id="receiveBtn" class="btn primary">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    </button>
-                </div>
-                <p class="hint">Enter the key to download files</p>
-            </div>
-        </main>
+        <!-- RECEIVE SECTION -->
+        <div class="section">
+            <h3>Receive a File</h3>
+            <input type="text" id="receiveCode" placeholder="6-digit code" maxlength="6">
+            <button id="receiveBtn">Download File</button>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>
+
 </html>

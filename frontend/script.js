@@ -1,239 +1,173 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // --- Elements ---
-    const dropZone = document.getElementById('dropZone');
-    const fileInput = document.getElementById('fileInput');
-    const uploadStatus = document.getElementById('uploadStatus');
-    const resultArea = document.getElementById('resultArea');
-    const fileNameDisplay = document.getElementById('fileName');
-    const fileSizeDisplay = document.getElementById('fileSize');
-    const sendBtn = document.getElementById('sendBtn');
-    const transferCodeDisplay = document.getElementById('transferCode');
-    const timeRemainingDisplay = document.getElementById('timeRemaining');
-    const newTransferBtn = document.getElementById('newTransferBtn');
-    
-    // Receive section elements
-    const receiveCodeInput = document.getElementById('receiveCode');
-    const receiveBtn = document.getElementById('receiveBtn');
+document.addEventListener("DOMContentLoaded", () => {
+  const API_BASE = "http://localhost:3001";
 
-    let selectedFile = null;
+  // Elements
+  const dropZone = document.getElementById("dropZone");
+  const fileInput = document.getElementById("fileInput");
+  const uploadStatus = document.getElementById("uploadStatus");
+  const resultArea = document.getElementById("resultArea");
 
-    // --- Event Listeners ---
+  const fileNameEl = document.getElementById("fileName");
+  const fileSizeEl = document.getElementById("fileSize");
+  const sendBtn = document.getElementById("sendBtn");
 
-    // Click to choose file
-    dropZone.addEventListener('click', () => {
-        if (!selectedFile) {
-            fileInput.click();
-        }
-    });
+  const transferCodeEl = document.getElementById("transferCode");
+  const timeRemainingEl = document.getElementById("timeRemaining");
+  const newTransferBtn = document.getElementById("newTransferBtn");
 
-    // File input change
-    fileInput.addEventListener('change', (e) => {
-        if (e.target.files.length > 0) {
-            handleFileSelect(e.target.files[0]);
-        }
-    });
+  const receiveCode = document.getElementById("receiveCode");
+  const receiveBtn = document.getElementById("receiveBtn");
 
-    // Drag and Drop
-    dropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropZone.classList.add('drag-over');
-    });
+  let selectedFile = null;
+  let timer = null;
 
-    dropZone.addEventListener('dragleave', () => {
-        dropZone.classList.remove('drag-over');
-    });
+  /* -------------------------------------------------------------------------- */
+  /*                                 SEND FLOW                                  */
+  /* -------------------------------------------------------------------------- */
 
-    dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('drag-over');
+  dropZone.addEventListener("click", () => {
+    if (!selectedFile) fileInput.click();
+  });
 
-        if (e.dataTransfer.files.length > 0) {
-            handleFileSelect(e.dataTransfer.files[0]);
-        }
-    });
+  fileInput.addEventListener("change", (e) => {
+    selectedFile = e.target.files[0];
+    if (!selectedFile) return;
 
-    // Upload & Send
-    sendBtn.addEventListener('click', async () => {
-        if (!selectedFile) return;
+    fileNameEl.textContent = selectedFile.name;
+    fileSizeEl.textContent = formatBytes(selectedFile.size);
 
-        setLoading(true);
+    dropZone.classList.add("hidden");
+    uploadStatus.classList.remove("hidden");
+  });
 
-        try {
-            const formData = new FormData();
-            formData.append('file', selectedFile);
+  sendBtn.addEventListener("click", async () => {
+    if (!selectedFile) return;
 
-            const response = await fetch('/api/transfers/upload', {
-                method: 'POST',
-                body: formData
-            });
+    try {
+      updateButtonState(sendBtn, true, "Uploading...");
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Upload failed');
-            }
+      const formData = new FormData();
+      formData.append("file", selectedFile);
 
-            const data = await response.json();
-            showResult(data);
+      const res = await fetch(`${API_BASE}/api/transfers/upload`, {
+        method: "POST",
+        body: formData // Browser sets Content-Type to multipart/form-data
+      });
 
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Failed to send file: ' + error.message);
-            setLoading(false);
-        }
-    });
+      if (!res.ok) throw new Error("Upload failed. Server might be down.");
 
-    // Send Another
-    newTransferBtn.addEventListener('click', () => {
-        resetSendForm();
-    });
+      const data = await res.json();
+      showResult(data);
+    } catch (err) {
+      alert("Error: " + err.message);
+    } finally {
+      updateButtonState(sendBtn, false, "Send");
+    }
+  });
 
-    // Receive File
-    receiveBtn.addEventListener('click', handleDownload);
-    receiveCodeInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') handleDownload();
-    });
+  /* -------------------------------------------------------------------------- */
+  /*                                RECEIVE FLOW                                */
+  /* -------------------------------------------------------------------------- */
 
-    // --- Functions ---
+  receiveBtn.addEventListener("click", async () => {
+    const code = receiveCode.value.trim();
 
-    function handleFileSelect(file) {
-        selectedFile = file;
-        fileNameDisplay.textContent = file.name;
-        fileSizeDisplay.textContent = formatBytes(file.size);
-        
-        dropZone.classList.add('hidden');
-        uploadStatus.classList.remove('hidden');
+    if (code.length !== 6 || isNaN(code)) {
+      alert("Please enter a valid 6-digit code.");
+      return;
     }
 
-    async function handleDownload() {
-        const code = receiveCodeInput.value.trim();
-        if (code.length !== 6 || isNaN(code)) {
-            alert('Please enter a valid 6-digit code');
-            return;
-        }
+    try {
+      updateButtonState(receiveBtn, true, "Downloading...");
 
-        // We can just redirect to the download URL, but let's check if it exists first
-        // to give a better error message, although the backend returns JSON on error.
-        // A simple trick is to try to fetch the headers first or just open it.
-        // Since we want to handle errors nicely:
-        
-        const downloadUrl = `/api/transfers/${code}`;
+      const res = await fetch(`${API_BASE}/api/transfers/${code}`);
 
-        try {
-            // Check if file exists/is valid before opening window
-            // Note: This relies on the backend sending JSON errors with non-200 status
-            // If the backend sends the file stream immediately on 200, this fetch will start downloading it.
-            // We can abort it.
-            
-            // However, since we want to download it, we can create a hidden link or use window.location
-            // The issue is catching 404s without the browser navigating to a "{"error":...}" page.
-            
-            // Better approach: fetch the blob.
-            
-            receiveBtn.textContent = '...';
-            receiveBtn.disabled = true;
+      if (res.status === 404) throw new Error("Code not found or expired.");
+      if (res.status === 410) throw new Error("Transfer link expired.");
+      if (!res.ok) throw new Error("Download failed.");
 
-            const response = await fetch(downloadUrl);
-            
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.message || 'Download failed');
-            }
+      const blob = await res.blob();
 
-            // If we are here, we have the stream. 
-            // We need to get the filename from Content-Disposition if possible, or default.
-            const contentDisposition = response.headers.get('Content-Disposition');
-            let filename = 'downloaded-file';
-            if (contentDisposition) {
-                const match = contentDisposition.match(/filename="?(.+)"?/);
-                if (match && match[1]) {
-                    filename = match[1];
-                }
-            }
+      // Robust filename extraction handling quotes
+      let filename = "downloaded-file";
+      const disposition = res.headers.get("Content-Disposition");
+      if (disposition) {
+        const match = disposition.match(/filename\*?=['"]?([^'";]+)['"]?/);
+        if (match && match[1]) filename = match[1];
+      }
 
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
+      triggerDownload(blob, filename);
 
-            receiveCodeInput.value = '';
+      receiveCode.value = "";
+      alert(`Successfully downloaded: ${filename}`);
 
-        } catch (error) {
-            alert(error.message);
-        } finally {
-            receiveBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
-            receiveBtn.disabled = false;
-        }
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      updateButtonState(receiveBtn, false, "Download");
     }
+  });
 
-    function showResult(data) {
-        uploadStatus.classList.add('hidden');
-        resultArea.classList.remove('hidden');
-        
-        transferCodeDisplay.textContent = data.transferCode;
-        
-        // Calculate and show expiry
-        const expiresAt = new Date(data.expiresAt);
-        startCountdown(expiresAt);
+  /* -------------------------------------------------------------------------- */
+  /*                                RESET/UTILS                                 */
+  /* -------------------------------------------------------------------------- */
+
+  newTransferBtn.addEventListener("click", () => {
+    selectedFile = null;
+    fileInput.value = "";
+
+    resultArea.classList.add("hidden");
+    uploadStatus.classList.add("hidden");
+    dropZone.classList.remove("hidden");
+
+    if (timer) clearInterval(timer);
+  });
+
+  function showResult(data) {
+    uploadStatus.classList.add("hidden");
+    resultArea.classList.remove("hidden");
+
+    transferCodeEl.textContent = data.transferCode;
+
+    const endTime = new Date(data.expiresAt);
+    updateTimer(endTime);
+    timer = setInterval(() => updateTimer(endTime), 1000);
+  }
+
+  function updateTimer(endTime) {
+    const diff = endTime - new Date();
+    if (diff <= 0) {
+      clearInterval(timer);
+      timeRemainingEl.textContent = "Expired";
+      return;
     }
+    const m = Math.floor(diff / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    timeRemainingEl.textContent = `${m}:${s < 10 ? "0" : ""}${s}`;
+  }
 
-    function resetSendForm() {
-        selectedFile = null;
-        fileInput.value = '';
-        
-        resultArea.classList.add('hidden');
-        dropZone.classList.remove('hidden');
-        
-        // Stop any running intervals
-        if (window.timerInterval) clearInterval(window.timerInterval);
-    }
+  function formatBytes(bytes) {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  }
 
-    function setLoading(isLoading) {
-        if (isLoading) {
-            sendBtn.textContent = 'Sending...';
-            sendBtn.disabled = true;
-        } else {
-            sendBtn.textContent = 'Send';
-            sendBtn.disabled = false;
-        }
-    }
+  function updateButtonState(btn, disabled, text) {
+    btn.disabled = disabled;
+    btn.textContent = text;
+  }
 
-    function formatBytes(bytes, decimals = 2) {
-        if (bytes === 0) return '0 Bytes';
-
-        const k = 1024;
-        const dm = decimals < 0 ? 0 : decimals;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-    }
-
-    function startCountdown(endTime) {
-        if (window.timerInterval) clearInterval(window.timerInterval);
-
-        function update() {
-            const now = new Date();
-            const distance = endTime - now;
-
-            if (distance < 0) {
-                clearInterval(window.timerInterval);
-                timeRemainingDisplay.textContent = "Expired";
-                return;
-            }
-
-            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-            timeRemainingDisplay.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-        }
-
-        update();
-        window.timerInterval = setInterval(update, 1000);
-    }
+  function triggerDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
 });
+
