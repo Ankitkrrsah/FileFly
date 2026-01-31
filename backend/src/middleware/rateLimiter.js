@@ -25,8 +25,6 @@ export const downloadRateLimiter = async (req, res, next) => {
         next();
     } catch (error) {
         console.error("Rate Limiter Error:", error);
-        // Fail open if Redis is down, or choose to block.
-        // Here we choose to allow the request to proceed to avoid breaking the app if cache is down.
         next();
     }
 };

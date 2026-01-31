@@ -31,13 +31,10 @@ psql -d <your_database> -f backend/schema.sql
 ```
 
 **3. Configure**
-Add a `.env` file in `backend/`:
-```env
-DATABASE_URL=postgresql://user:password@localhost:5432/your_db
-PORT=3001
+Copy the example environment file:
+```bash
+cp .env.example .env
 ```
-
-**4. Go!**
 Start Redis first (`redis-server`), then run the app:
 ```bash
 cd backend
