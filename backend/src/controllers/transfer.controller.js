@@ -3,7 +3,13 @@ import { nanoid } from "nanoid";
 import pool from "../db.js";
 import path from "path";
 
-const upload = multer({ dest: "uploads/" });
+const upload = multer({
+  dest: "uploads/",
+  limits: {
+    fileSize: 10 * 1024 * 1024 
+  } 
+});
+
 
 export const uploadFile = [
   upload.single("file"),
@@ -12,7 +18,6 @@ export const uploadFile = [
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
       const maxDownloads = 100;
-
       const fileResult = await pool.query(
         `INSERT INTO files (original_name, stored_name, mime_type, size)
          VALUES ($1,$2,$3,$4) RETURNING id`,
@@ -70,7 +75,7 @@ export const downloadFile = async (req, res) => {
     );
 
 
-    const safeFilename = encodeURIComponent(transfer.original_name);
+    const safeFilename = encodeURIComponent(transfer.original_name);  
     res.setHeader('Content-Disposition', `attachment; filename="${transfer.original_name}"; filename*=UTF-8''${safeFilename}`);
     res.sendFile(path.resolve(`uploads/${transfer.stored_name}`));
   } catch (err) {

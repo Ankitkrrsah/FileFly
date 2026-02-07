@@ -22,6 +22,12 @@ Speaking of rate limiting, I've set it up so you can't go crazy with downloads. 
 
 If you want to spin this up yourself, here's the drill:
 
+**Docker (recommended)**
+```bash
+docker compose up --build
+```
+Then open `http://localhost:3001`.
+
 **1. Prereqs**
 Make sure you have Node, Postgres, and Redis installed.
 

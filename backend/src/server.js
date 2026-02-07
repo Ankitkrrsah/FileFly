@@ -4,6 +4,7 @@ import path from "path";
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import transferRoutes from "./routes/transfer.routes.js";
+import fs from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,11 +13,20 @@ dotenv.config({ path: path.join(__dirname, "..", ".env") });
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || "*",
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
+}));
+
+const uploadsPath = path.join(__dirname, "..", "uploads");
+fs.mkdirSync(uploadsPath, { recursive: true });
 
 app.use("/api/transfers", transferRoutes);
 
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// this are the files which can be accessed by the browser
+app.use("/uploads", express.static(uploadsPath));
 
 const frontendPath = path.resolve(__dirname, "..", "..", "frontend");
 app.use(express.static(frontendPath));
@@ -25,11 +35,11 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
 });
 
-const server = app.listen(3001, () => {
-  console.log("Server running on port 3001");
+const port = process.env.PORT || 3001;
+const server = app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
 
-// Graceful Shutdown: Ensures port is released immediately when you stop the server
 process.on('SIGINT', () => {
   console.log('Shutting down server...');
   server.close(() => {
@@ -38,7 +48,7 @@ process.on('SIGINT', () => {
   });
 });
 
-// Global Error Handler
+
 app.use((err, req, res, next) => {
   console.error("Internal Server Error:", err);
   res.status(500).json({ error: "Something went wrong! details: " + err.message });

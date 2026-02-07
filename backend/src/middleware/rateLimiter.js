@@ -1,6 +1,6 @@
 import redis from "../redis.js";
 
-const RATE_LIMIT_WINDOW = 60 * 60; // 60 minutes in seconds
+const RATE_LIMIT_WINDOW = 60 * 60; // 60 minutes 
 const MAX_DOWNLOADS = 30;
 
 export const downloadRateLimiter = async (req, res, next) => {
